@@ -49,8 +49,8 @@ class CassandraConnector(conf: CassandraConnectorConf)
 
   private[this] var _config = conf
 
-  /** Known cluster hosts. Contacts the cluster and determines the current live hosts in this datacenter */
-  def hosts(): Set[InetAddress] = withSessionDo{ session =>
+  /** Known cluster hosts in the connected datacenter.*/
+  lazy val hosts: Set[InetAddress] = withSessionDo{ session =>
     val allNodes = session.getCluster.getMetadata.getAllHosts.toSet
     val myNodes = LocalNodeFirstLoadBalancingPolicy.nodesInTheSameDC(_config.hosts, allNodes).map(_.getAddress)
     _config = _config.copy(hosts = myNodes)
@@ -77,10 +77,6 @@ class CassandraConnector(conf: CassandraConnectorConf)
   def openSession() = {
     val session = sessionCache.acquire(_config)
     try {
-      val allNodes = session.getCluster.getMetadata.getAllHosts.toSet
-      val myNodes = LocalNodeFirstLoadBalancingPolicy.nodesInTheSameDC(_config.hosts, allNodes).map(_.getAddress)
-      _config = _config.copy(hosts = myNodes)
-
       // We need a separate SessionProxy here to protect against double closing the session.
       // Closing SessionProxy is not really closing the session, because sessions are shared.
       // Instead, refcount is decreased. But double closing the same Session reference must not

@@ -20,7 +20,7 @@ class ReplicaPartitioner(partitionsPerReplicaSet: Int, connector: CassandraConne
   /* TODO We Need JAVA-312 to get sets of replicas instead of single endpoints. Once we have that we'll be able to
   build a map of Set[ip,ip,...] => Index before looking at our data and give the all options for the preferred location
    for a partition*/
-  private val hosts = connector.hosts().toVector
+  private val hosts = connector.hosts.toVector
   private val numHosts = hosts.size
   private val partitionIndexes = (0 until partitionsPerReplicaSet * numHosts).grouped(partitionsPerReplicaSet).toList
   private val hostMap = (hosts zip partitionIndexes).toMap
