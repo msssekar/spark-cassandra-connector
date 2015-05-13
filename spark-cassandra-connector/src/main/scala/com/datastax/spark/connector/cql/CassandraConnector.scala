@@ -49,8 +49,13 @@ class CassandraConnector(conf: CassandraConnectorConf)
 
   private[this] var _config = conf
 
-  /** Known cluster hosts. This is going to return all cluster hosts after at least one successful connection has been made */
-  def hosts = _config.hosts
+  /** Known cluster hosts. Contacts the cluster and determines the current live hosts in this datacenter */
+  def hosts(): Set[InetAddress] = withSessionDo{ session =>
+    val allNodes = session.getCluster.getMetadata.getAllHosts.toSet
+    val myNodes = LocalNodeFirstLoadBalancingPolicy.nodesInTheSameDC(_config.hosts, allNodes).map(_.getAddress)
+    _config = _config.copy(hosts = myNodes)
+    _config.hosts
+  }
 
   /** Configured native port */
   def nativePort = _config.nativePort
